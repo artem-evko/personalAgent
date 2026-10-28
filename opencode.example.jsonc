@@ -1,0 +1,47 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "rsiai/claude-sonnet-5-5",
+  "small_model": "rsiai/claude-haiku-4-5",
+  "instructions": [
+    "AGENTS.md",
+    ".opencode/memory/project_architecture.md",
+    ".opencode/memory/active_handoff.md"
+  ],
+  "agent": {
+    "build": {
+      "steps": 12
+    },
+    "explore": {
+      "description": "Быстрый субагент-разведчик кода (отчет до 350 слов)",
+      "prompt": "Ты быстрый разведчик кодовой базы. Ищи через grep/glob и читай только нужные строки. Возвращай СЖАТЫЙ технический отчет (МАКСИМУМ 350 СЛОВ): точные пути к файлам, номера строк, сигнатуры и причины багов. Не вставляй файлы целиком."
+    }
+  },
+  "provider": {
+    "rsiai": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "RSI AI Gateway (-95%)",
+      "options": {
+        "baseURL": "https://www.rsiai.net/v1",
+        "apiKey": "YOUR_RSIAI_API_KEY"
+      },
+      "models": {
+        "claude-sonnet-5-5": {
+          "name": "Claude Sonnet 5.5 (RSI -95%)",
+          "tool_call": true
+        },
+        "claude-opus-5-5": {
+          "name": "Claude Opus 5.5 (RSI -95%)",
+          "tool_call": true
+        },
+        "claude-haiku-4-5": {
+          "name": "Claude Haiku 4.5 (Fast Subagent)",
+          "tool_call": true
+        }
+      }
+    }
+  },
+  "compaction": {
+    "auto": true,
+    "prune": true
+  }
+}
