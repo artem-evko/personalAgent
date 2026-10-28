@@ -62,13 +62,27 @@ function powershellProfiles(): string[] {
   const docsOverride = process.env.SETUP_DOCUMENTS_DIR
   let docs = docsOverride
   if (!docs) {
-    const res = Bun.spawnSync([
+    const systemRoot = process.env.SystemRoot || process.env.windir || "C:\\Windows"
+    const candidates = [
+      path.join(systemRoot, "System32", "WindowsPowerShell", "v1.0", "powershell.exe"),
       "powershell",
-      "-NoProfile",
-      "-Command",
-      "[Console]::OutputEncoding=[Text.Encoding]::UTF8; [Environment]::GetFolderPath('MyDocuments')",
-    ])
-    docs = res.exitCode === 0 ? res.stdout.toString().trim() : ""
+      "pwsh",
+    ]
+    for (const exe of candidates) {
+      try {
+        const res = Bun.spawnSync([
+          exe,
+          "-NoProfile",
+          "-Command",
+          "[Console]::OutputEncoding=[Text.Encoding]::UTF8; [Environment]::GetFolderPath('MyDocuments')",
+        ])
+        const out = res.exitCode === 0 ? res.stdout.toString().trim() : ""
+        if (out) {
+          docs = out
+          break
+        }
+      } catch {}
+    }
   }
   if (!docs) docs = path.join(HOME, "Documents")
   return [
@@ -141,10 +155,20 @@ ok(`${path.join(GLOBAL_DIR, "commands", "handoff.md")}`)
 console.log("4/4 Команды ai и aifix")
 const workDir = ROOT
 const bunExe = path.basename(process.execPath).toLowerCase() === "bun.exe" ? process.execPath : path.join(BUN_BIN, "bun.exe")
-const run = `cd /d "${workDir}" & "${bunExe}" dev %*`
+// Без аргументов открываем проект в папке, из которой вызвана команда; с аргументами (ai run ..., ai serve) передаём их как есть.
+const launch = (prefix: string) =>
+  [
+    "@echo off",
+    "setlocal",
+    'set "RSI_CWD=%CD%"',
+    ...(prefix ? [prefix] : []),
+    `cd /d "${workDir}"`,
+    `if "%~1"=="" ("${bunExe}" dev "%RSI_CWD%\\.") else ("${bunExe}" dev %*)`,
+    "",
+  ].join("\r\n")
 const cmdFiles: Record<string, string> = {
-  "ai.cmd": `@echo off & ${run}\r\n`,
-  "aifix.cmd": `@echo off & taskkill /F /IM bun.exe 2>nul & ${run}\r\n`,
+  "ai.cmd": launch(""),
+  "aifix.cmd": launch("taskkill /F /IM bun.exe 2>nul"),
 }
 for (const [name, body] of Object.entries(cmdFiles)) {
   write(path.join(BUN_BIN, name), body)
