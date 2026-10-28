@@ -42,3 +42,5 @@ tsconfig.tsbuildinfo
 /opencode.jsonc
 /packages/opencode/opencode.jsonc
 .opencode/memory/
+/patch.ts
+/.antigravityignore
