@@ -43,6 +43,28 @@
 
 ---
 
+## 🇷🇺 Быстрый старт на русском (сборка для Windows)
+
+Эта сборка включает шлюз [RSI AI Gateway](https://www.rsiai.net) (-95%), двухуровневую память, команду `/handoff` и короткие команды `ai` / `aifix`.
+
+1. Получите API-ключ на [www.rsiai.net](https://www.rsiai.net) (начинается с `sk-`).
+2. Склонируйте репозиторий и запустите установщик в PowerShell:
+
+   ```powershell
+   git clone https://github.com/artem-evko/personalAgent.git opencode
+   cd opencode
+   powershell -ExecutionPolicy Bypass -File .\install.ps1
+   ```
+
+   Установщик проверит Bun, выполнит `bun install` и запустит `setup.ts`: спросит ключ, создаст `opencode.jsonc`, память и команды `ai` / `aifix`.
+3. Откройте **новое** окно PowerShell и введите `ai`.
+
+Если OpenCode завис, выполните `aifix` (завершает все процессы `bun.exe` и запускает заново). Чтобы не жечь токены в длинных чатах: `/handoff`, затем `/new`.
+
+Подробности, таблица создаваемых файлов и решение проблем: [README_RU.md](README_RU.md).
+
+---
+
 ### Installation
 
 ```bash

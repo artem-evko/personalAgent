@@ -23,7 +23,7 @@
 Склонируйте репозиторий и запустите установщик в PowerShell:
 
 ```powershell
-git clone https://github.com/artem-evko/opencode.git
+git clone https://github.com/artem-evko/personalAgent.git opencode
 cd opencode
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
