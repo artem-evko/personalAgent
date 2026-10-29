@@ -40,6 +40,7 @@ tsconfig.tsbuildinfo
 
 # Личный конфиг с API-ключом и локальная память (не коммитить!)
 /opencode.jsonc
+/opencode.jsonc.bak
 /packages/opencode/opencode.jsonc
 .opencode/memory/
 /patch.ts

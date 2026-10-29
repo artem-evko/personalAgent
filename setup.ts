@@ -58,6 +58,15 @@ function askKey(): string {
   process.exit(1)
 }
 
+// Достаёт ключ из ранее созданного opencode.jsonc, чтобы при обновлении шаблона не спрашивать его заново.
+function existingKey(): string | undefined {
+  if (!fs.existsSync(rootConfig)) return undefined
+  const match = fs.readFileSync(rootConfig, "utf8").match(/"apiKey"\s*:\s*"([^"]+)"/)
+  const key = match?.[1]
+  if (key && key !== PLACEHOLDER && KEY_PATTERN.test(key)) return key
+  return undefined
+}
+
 function powershellProfiles(): string[] {
   const docsOverride = process.env.SETUP_DOCUMENTS_DIR
   let docs = docsOverride
@@ -112,15 +121,14 @@ console.log("")
 // 1. Конфиг с ключом
 console.log("1/4 Конфигурация")
 const exampleText = readOrExit(template)
-let configText: string
-if (fs.existsSync(rootConfig) && !fs.readFileSync(rootConfig, "utf8").includes(PLACEHOLDER)) {
-  configText = fs.readFileSync(rootConfig, "utf8")
-  ok("Найден готовый opencode.jsonc, ключ не запрашиваю")
-} else {
+let key = existingKey()
+if (key) ok("Ключ взят из существующего opencode.jsonc, конфиг обновлён по свежему шаблону")
+else {
   console.log("  Ключ можно получить на https://www.rsiai.net (раздел с API-ключами).")
-  configText = exampleText.split(PLACEHOLDER).join(askKey())
+  key = askKey()
 }
-write(rootConfig, configText)
+const configText = exampleText.split(PLACEHOLDER).join(key)
+writeWithBackup(rootConfig, configText)
 ok(`${rootConfig}`)
 write(path.join(ROOT, "packages", "opencode", "opencode.jsonc"), configText)
 ok("packages/opencode/opencode.jsonc")
