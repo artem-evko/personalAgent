@@ -9,9 +9,10 @@
   ],
   "agent": {
     "build": {
-      "steps": 12
+      "steps": 100
     },
     "explore": {
+      "steps": 20,
       "description": "Быстрый субагент-разведчик кода (отчет до 350 слов)",
       "prompt": "Ты быстрый разведчик кодовой базы. Ищи через grep/glob и читай только нужные строки. Возвращай СЖАТЫЙ технический отчет (МАКСИМУМ 350 СЛОВ): точные пути к файлам, номера строк, сигнатуры и причины багов. Не вставляй файлы целиком."
     }
@@ -27,19 +28,35 @@
       "models": {
         "claude-sonnet-5-5": {
           "name": "Claude Sonnet 5.5 (RSI -95%)",
-          "tool_call": true
+          "tool_call": true,
+          "limit": { "context": 200000, "output": 32000 }
         },
         "claude-opus-5-5": {
           "name": "Claude Opus 5.5 (RSI -95%)",
-          "tool_call": true
+          "tool_call": true,
+          "limit": { "context": 200000, "output": 32000 }
         },
         "claude-haiku-4-5": {
           "name": "Claude Haiku 4.5 (Fast Subagent)",
-          "tool_call": true
+          "tool_call": true,
+          "limit": { "context": 200000, "output": 32000 }
         }
       }
     }
   },
+  "permissions": [
+    { "action": "shell", "resource": "git push *", "effect": "ask" },
+    { "action": "shell", "resource": "git clean *", "effect": "ask" },
+    { "action": "shell", "resource": "git reset --hard*", "effect": "ask" },
+    { "action": "shell", "resource": "rm *", "effect": "ask" },
+    { "action": "shell", "resource": "rmdir *", "effect": "ask" },
+    { "action": "shell", "resource": "Remove-Item *", "effect": "ask" },
+    { "action": "shell", "resource": "ri *", "effect": "ask" },
+    { "action": "shell", "resource": "rd *", "effect": "ask" },
+    { "action": "shell", "resource": "del *", "effect": "ask" },
+    { "action": "shell", "resource": "erase *", "effect": "ask" },
+    { "action": "shell", "resource": "cmd *", "effect": "ask" }
+  ],
   "compaction": {
     "auto": true,
     "prune": true
