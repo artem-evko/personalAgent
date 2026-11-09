@@ -12,6 +12,7 @@ const PLACEHOLDER = "YOUR_RSIAI_API_KEY"
 const KEY_PATTERN = /^[A-Za-z0-9._-]{8,}$/
 
 const GLOBAL_DIR = path.join(HOME, ".config", "opencode")
+const SECRETS_DIR = path.join(HOME, ".secrets")
 const BUN_BIN = path.join(HOME, ".bun", "bin")
 const MARKER = "# >>> rsi-opencode >>>"
 const MARKER_END = "# <<< rsi-opencode <<<"
@@ -46,25 +47,40 @@ function readOrExit(file: string) {
   return fs.readFileSync(file, "utf8")
 }
 
-function askKey(): string {
-  const fromEnv = process.env.RSIAI_API_KEY?.trim()
+function askKey(envName: string, label: string, required: boolean): string | undefined {
+  const fromEnv = process.env[envName]?.trim()
   if (fromEnv && KEY_PATTERN.test(fromEnv)) return fromEnv
   for (let attempt = 0; attempt < 3; attempt++) {
-    const answer = (prompt("Введите API-ключ от rsiai.net (начинается с sk-):") ?? "").trim()
+    const hint = required ? "" : " (Enter, чтобы пропустить)"
+    const answer = (prompt(`Введите ключ rsiai.net группы ${label}${hint}:`) ?? "").trim()
+    if (!answer && !required) return undefined
     if (KEY_PATTERN.test(answer)) return answer
     console.log("  Ключ выглядит неверно: только латиница, цифры, '.', '_' и '-', минимум 8 символов. Попробуйте ещё раз.")
   }
+  if (!required) return undefined
   console.error("Не удалось получить ключ. Получите его на https://www.rsiai.net и запустите установку снова.")
   process.exit(1)
 }
 
-// Достаёт ключ из ранее созданного opencode.jsonc, чтобы при обновлении шаблона не спрашивать его заново.
-function existingKey(): string | undefined {
+// Ключ из старого opencode.jsonc (до перехода на ~/.secrets), чтобы не спрашивать его заново.
+function legacyKey(): string | undefined {
   if (!fs.existsSync(rootConfig)) return undefined
-  const match = fs.readFileSync(rootConfig, "utf8").match(/"apiKey"\s*:\s*"([^"]+)"/)
+  const match = fs.readFileSync(rootConfig, "utf8").match(/"apiKey"\s*:\s*"([^"{]+)"/)
   const key = match?.[1]
   if (key && key !== PLACEHOLDER && KEY_PATTERN.test(key)) return key
   return undefined
+}
+
+function readKeyFile(file: string): string | undefined {
+  if (!fs.existsSync(file)) return undefined
+  const key = fs.readFileSync(file, "utf8").trim()
+  return KEY_PATTERN.test(key) ? key : undefined
+}
+
+// Один ключ на файл, без переноса строки: OpenCode подставляет содержимое файла целиком.
+function saveKey(file: string, key: string) {
+  write(file, key)
+  ok(`ключ сохранён в ${file}`)
 }
 
 function powershellProfiles(): string[] {
@@ -120,14 +136,21 @@ console.log("")
 
 // 1. Конфиг с ключом
 console.log("1/4 Конфигурация")
-const exampleText = readOrExit(template)
-let key = existingKey()
-if (key) ok("Ключ взят из существующего opencode.jsonc, конфиг обновлён по свежему шаблону")
+const configText = readOrExit(template)
+const claudeKeyFile = path.join(SECRETS_DIR, "rsiai-key")
+const gptKeyFile = path.join(SECRETS_DIR, "rsiai-gpt-key")
+if (readKeyFile(claudeKeyFile)) ok(`ключ группы claude уже есть: ${claudeKeyFile}`)
 else {
-  console.log("  Ключ можно получить на https://www.rsiai.net (раздел с API-ключами).")
-  key = askKey()
+  console.log("  Ключи создаются на https://www.rsiai.net (раздел с API-ключами), по одному на группу.")
+  const key = legacyKey() ?? askKey("RSIAI_API_KEY", "claude", true)!
+  saveKey(claudeKeyFile, key)
 }
-const configText = exampleText.split(PLACEHOLDER).join(key)
+if (readKeyFile(gptKeyFile)) ok(`ключ группы gpt уже есть: ${gptKeyFile}`)
+else {
+  const key = askKey("RSIAI_GPT_API_KEY", "gpt", false)
+  if (key) saveKey(gptKeyFile, key)
+  else note(`ключ gpt пропущен: агенты designer-html и reviewer заработают, когда появится ${gptKeyFile}`)
+}
 writeWithBackup(rootConfig, configText)
 ok(`${rootConfig}`)
 write(path.join(ROOT, "packages", "opencode", "opencode.jsonc"), configText)
@@ -158,6 +181,11 @@ ok(`${path.join(GLOBAL_DIR, "AGENTS.md")}`)
 const handoffSrc = readOrExit(path.join(ROOT, ".opencode", "commands", "handoff.md"))
 writeWithBackup(path.join(GLOBAL_DIR, "commands", "handoff.md"), handoffSrc)
 ok(`${path.join(GLOBAL_DIR, "commands", "handoff.md")}`)
+const agentsDir = path.join(ROOT, ".opencode", "agents")
+for (const name of fs.readdirSync(agentsDir).filter((f) => f.endsWith(".md"))) {
+  writeWithBackup(path.join(GLOBAL_DIR, "agents", name), fs.readFileSync(path.join(agentsDir, name), "utf8"))
+  ok(`агент ${name.replace(/\.md$/, "")}`)
+}
 
 // 4. Алиасы ai и aifix
 console.log("4/4 Команды ai и aifix")
