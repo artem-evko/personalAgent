@@ -178,14 +178,38 @@ for (const [name, body] of Object.entries(memFiles)) {
 console.log("3/4 Глобальные правила и /handoff")
 writeWithBackup(path.join(GLOBAL_DIR, "AGENTS.md"), readOrExit(path.join(ROOT, "AGENTS.md")))
 ok(`${path.join(GLOBAL_DIR, "AGENTS.md")}`)
-const handoffSrc = readOrExit(path.join(ROOT, ".opencode", "commands", "handoff.md"))
-writeWithBackup(path.join(GLOBAL_DIR, "commands", "handoff.md"), handoffSrc)
-ok(`${path.join(GLOBAL_DIR, "commands", "handoff.md")}`)
+const commandsDir = path.join(ROOT, ".opencode", "commands")
+for (const name of fs.readdirSync(commandsDir).filter((f) => f.endsWith(".md"))) {
+  writeWithBackup(path.join(GLOBAL_DIR, "commands", name), fs.readFileSync(path.join(commandsDir, name), "utf8"))
+  ok(`команда /${name.replace(/\.md$/, "")}`)
+}
 const agentsDir = path.join(ROOT, ".opencode", "agents")
 for (const name of fs.readdirSync(agentsDir).filter((f) => f.endsWith(".md"))) {
   writeWithBackup(path.join(GLOBAL_DIR, "agents", name), fs.readFileSync(path.join(agentsDir, name), "utf8"))
   ok(`агент ${name.replace(/\.md$/, "")}`)
 }
+
+// 3.1 Шаблоны для научных работ (templates/gost.docx, CSL-стили)
+const templatesSrc = path.join(ROOT, "templates")
+if (fs.existsSync(templatesSrc)) {
+  const templatesDst = path.join(GLOBAL_DIR, "templates")
+  for (const name of fs.readdirSync(templatesSrc)) {
+    const srcFile = path.join(templatesSrc, name)
+    if (!fs.statSync(srcFile).isFile()) continue
+    if (DRY) note(`(dry-run) скопировал бы шаблон ${name}`)
+    else {
+      fs.mkdirSync(templatesDst, { recursive: true })
+      fs.copyFileSync(srcFile, path.join(templatesDst, name))
+    }
+    ok(`шаблон ${name}`)
+  }
+}
+
+// 3.2 Pandoc — нужен команде /docx для сборки научных работ в Word
+const pandocExe = path.join(HOME, ".local", "bin", "pandoc.exe")
+const pandocOnPath = Bun.spawnSync(["where", "pandoc"]).exitCode === 0
+if (fs.existsSync(pandocExe) || pandocOnPath) ok("pandoc найден")
+else note("pandoc не найден — нужен только для команды /docx (сборка научных работ в .docx). Поставьте portable-версию: https://github.com/jgm/pandoc/releases, распакуйте в %USERPROFILE%\\.local\\bin")
 
 // 4. Алиасы ai и aifix
 console.log("4/4 Команды ai и aifix")
